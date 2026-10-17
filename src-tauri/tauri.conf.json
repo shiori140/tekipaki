@@ -12,9 +12,11 @@
       {
         "label": "main",
         "title": "tekipaki",
-        "width": 720,
-        "height": 560,
-        "visible": false
+        "width": 980,
+        "height": 640,
+        "visible": false,
+        "minWidth": 720,
+        "minHeight": 420
       }
     ],
     "security": {

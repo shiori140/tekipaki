@@ -5,16 +5,23 @@
     <title>tekipaki</title>
     <link rel="stylesheet" href="base.css" />
     <style>
+      html,
+      body {
+        height: 100%;
+      }
       body {
         background: var(--bg);
-        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        user-select: none;
       }
 
       header {
         display: flex;
         align-items: baseline;
         gap: 10px;
-        margin-bottom: 14px;
+        padding: 14px 16px 10px;
       }
       h1 {
         margin: 0;
@@ -27,11 +34,19 @@
       }
 
       .columns {
+        flex: 1;
+        min-height: 0;
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 12px;
+        padding: 0 16px;
       }
 
+      section {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
       section h2 {
         margin: 0 0 8px;
         font-size: 13px;
@@ -46,9 +61,10 @@
         border-radius: 50%;
         background: var(--color);
       }
-      section[data-priority="now"] { --color: var(--now); }
-      section[data-priority="today"] { --color: var(--today); }
-      section[data-priority="later"] { --color: var(--later); }
+      section[data-column="now"] { --color: var(--now); }
+      section[data-column="today"] { --color: var(--today); }
+      section[data-column="later"] { --color: var(--later); }
+      section[data-column="done"] { --color: var(--muted); }
       section h2 .count {
         color: var(--muted);
         font-weight: 400;
@@ -57,17 +73,57 @@
       ul {
         list-style: none;
         margin: 0;
-        padding: 0;
+        padding: 2px 2px 16px;
         display: flex;
         flex-direction: column;
         gap: 8px;
+        overflow-y: auto;
       }
-      li {
+      li.task {
+        display: flex;
+        gap: 8px;
         background: var(--surface);
         border: 1px solid var(--border);
         border-left: 3px solid var(--color);
         border-radius: 8px;
-        padding: 8px 10px;
+        padding: 8px 10px 8px 8px;
+        cursor: default;
+      }
+      li.task[data-priority="now"] { --color: var(--now); }
+      li.task[data-priority="today"] { --color: var(--today); }
+      li.task[data-priority="later"] { --color: var(--later); }
+      li.task.selected {
+        outline: 2px solid var(--focus);
+        outline-offset: 1px;
+      }
+      li.task.done .title {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+
+      .check {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        margin-top: 1px;
+        border: 1.5px solid var(--muted);
+        border-radius: 50%;
+        background: transparent;
+        padding: 0;
+        cursor: pointer;
+        color: transparent;
+        font-size: 11px;
+        line-height: 1;
+      }
+      li.task.done .check {
+        background: var(--muted);
+        border-color: var(--muted);
+        color: var(--surface);
+      }
+
+      .body {
+        min-width: 0;
+        flex: 1;
       }
       .title {
         font-weight: 600;
@@ -89,9 +145,68 @@
         color: var(--muted);
         font-size: 11px;
       }
+      /* 放置に気づけるよう、古いものほど経過時間の色を強くする。 */
+      .age[data-level="1"] { color: var(--age-1); }
+      .age[data-level="2"] { color: var(--age-2); font-weight: 600; }
+      .age[data-level="3"] { color: var(--age-3); font-weight: 700; }
+
       .empty {
         color: var(--muted);
         font-size: 12px;
+        padding: 4px 2px;
+      }
+
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+      kbd {
+        font: inherit;
+        font-size: 11px;
+        padding: 0 5px;
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        color: var(--text);
+      }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 48px;
+        transform: translate(-50%, 8px);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: var(--text);
+        color: var(--bg);
+        font-size: 12.5px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 150ms ease, transform 150ms ease;
+      }
+      .toast.visible {
+        opacity: 1;
+        transform: translate(-50%, 0);
+        pointer-events: auto;
+      }
+      .toast button {
+        border: none;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
       }
     </style>
   </head>
@@ -101,6 +216,11 @@
       <p id="shortcut"></p>
     </header>
     <div class="columns" id="columns"></div>
+    <footer id="keys"></footer>
+    <div class="toast" id="toast" role="status">
+      <span id="toast-text"></span>
+      <button type="button" id="toast-undo">元に戻す</button>
+    </div>
     <script type="module" src="main.js"></script>
   </body>
 </html>

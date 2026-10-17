@@ -10,7 +10,7 @@ use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_global_shortcut::{Shortcut, ShortcutState};
 
 use session::Session;
-use store::{Priority, Store, Task};
+use store::{Priority, Status, Store, Task};
 
 /// 2キーの組み合わせは他のアプリと衝突しやすいため、3キーにしている。
 const REGISTER_SHORTCUT: &str = "CommandOrControl+Shift+Space";
@@ -18,6 +18,36 @@ const REGISTER_SHORTCUT: &str = "CommandOrControl+Shift+Space";
 #[tauri::command]
 fn list_tasks(store: tauri::State<Store>) -> Vec<Task> {
     store.list()
+}
+
+/// 優先度や完了状態を変え、「元に戻す」用に変更前の内容を返す。
+#[tauri::command]
+fn update_task(
+    app: AppHandle,
+    store: tauri::State<Store>,
+    id: String,
+    priority: Option<Priority>,
+    status: Option<Status>,
+) -> Result<Option<Task>, String> {
+    let before = store
+        .update(&id, |t| {
+            if let Some(p) = priority {
+                t.priority = p;
+            }
+            if let Some(s) = status {
+                t.set_status(s);
+            }
+        })
+        .map_err(|e| e.to_string())?;
+    let _ = app.emit("tasks:changed", ());
+    Ok(before)
+}
+
+#[tauri::command]
+fn restore_task(app: AppHandle, store: tauri::State<Store>, task: Task) -> Result<(), String> {
+    store.restore(task).map_err(|e| e.to_string())?;
+    let _ = app.emit("tasks:changed", ());
+    Ok(())
 }
 
 #[tauri::command]
@@ -110,7 +140,13 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![list_tasks, save_manual, hide_input])
+        .invoke_handler(tauri::generate_handler![
+            list_tasks,
+            update_task,
+            restore_task,
+            save_manual,
+            hide_input
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

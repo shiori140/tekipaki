@@ -66,6 +66,14 @@ impl Task {
             completed_at: None,
         })
     }
+
+    pub fn set_status(&mut self, status: Status) {
+        self.completed_at = match status {
+            Status::Done => self.completed_at.or_else(|| Some(Local::now())),
+            Status::Open => None,
+        };
+        self.status = status;
+    }
 }
 
 pub struct Store {
@@ -101,6 +109,32 @@ impl Store {
 
     pub fn list(&self) -> Vec<Task> {
         self.tasks.lock().unwrap().clone()
+    }
+
+    /// 1件を書き換えて、書き換える前の内容を返す。見つからなければ None。
+    pub fn update(
+        &self,
+        id: &str,
+        change: impl FnOnce(&mut Task),
+    ) -> std::io::Result<Option<Task>> {
+        let mut tasks = self.tasks.lock().unwrap();
+        let Some(task) = tasks.iter_mut().find(|t| t.id == id) else {
+            return Ok(None);
+        };
+        let before = task.clone();
+        change(task);
+        self.write(&tasks)?;
+        Ok(Some(before))
+    }
+
+    /// 「元に戻す」用に、同じ id のタスクを渡された内容で置き換える。
+    pub fn restore(&self, task: Task) -> std::io::Result<()> {
+        let mut tasks = self.tasks.lock().unwrap();
+        match tasks.iter_mut().find(|t| t.id == task.id) {
+            Some(t) => *t = task,
+            None => tasks.push(task),
+        }
+        self.write(&tasks)
     }
 
     fn write(&self, tasks: &[Task]) -> std::io::Result<()> {
@@ -143,5 +177,44 @@ mod tests {
         assert_eq!(reloaded[0].priority, Priority::Later);
         assert_eq!(reloaded[0].source_app.as_deref(), Some("Slack"));
         fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn update_returns_previous_and_restore_undoes() {
+        let dir = std::env::temp_dir().join(format!("tekipaki-test-{}", uuid::Uuid::new_v4()));
+        let store = Store::open(dir.clone()).unwrap();
+        let task = Task::from_text("a", Priority::Now, None).unwrap();
+        let id = task.id.clone();
+        store.add(task).unwrap();
+
+        let before = store
+            .update(&id, |t| {
+                t.priority = Priority::Later;
+                t.set_status(Status::Done);
+            })
+            .unwrap()
+            .unwrap();
+        let now = &store.list()[0];
+        assert_eq!(now.priority, Priority::Later);
+        assert_eq!(now.status, Status::Done);
+        assert!(now.completed_at.is_some());
+
+        store.restore(before).unwrap();
+        let reloaded = Store::open(dir.clone()).unwrap().list();
+        assert_eq!(reloaded[0].priority, Priority::Now);
+        assert_eq!(reloaded[0].status, Status::Open);
+        assert!(reloaded[0].completed_at.is_none());
+
+        assert!(store.update("missing", |_| {}).unwrap().is_none());
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn reopening_clears_completed_at() {
+        let mut t = Task::from_text("a", Priority::Now, None).unwrap();
+        t.set_status(Status::Done);
+        assert!(t.completed_at.is_some());
+        t.set_status(Status::Open);
+        assert!(t.completed_at.is_none());
     }
 }

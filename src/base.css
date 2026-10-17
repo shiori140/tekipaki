@@ -11,6 +11,10 @@
   --text: #1c1c1f;
   --muted: #6b6b73;
   --border: #e3e3e7;
+  --focus: #6e56cf;
+  --age-1: #b07a00;
+  --age-2: #d9480f;
+  --age-3: #c92a2a;
 
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI",
     "Yu Gothic UI", "Meiryo", sans-serif;
@@ -26,6 +30,10 @@
     --text: #ededf0;
     --muted: #9a9aa3;
     --border: #34343a;
+    --focus: #9e8cfc;
+    --age-1: #e0b14a;
+    --age-2: #ff8a4c;
+    --age-3: #ff6b6b;
   }
 }
 
