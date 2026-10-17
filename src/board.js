@@ -1,3 +1,5 @@
+import { t } from "./i18n.js";
+
 export const COLUMNS = ["now", "today", "later", "done"];
 
 /** 完了列は振り返り用なので、新しいものから一定数だけ出す。 */
@@ -23,10 +25,10 @@ export function groupTasks(tasks) {
 
 export function elapsed(iso, now = Date.now()) {
   const ms = now - new Date(iso).getTime();
-  if (ms < MINUTE) return "たった今";
-  if (ms < HOUR) return `${Math.floor(ms / MINUTE)}分前`;
-  if (ms < DAY) return `${Math.floor(ms / HOUR)}時間前`;
-  return `${Math.floor(ms / DAY)}日前`;
+  if (ms < MINUTE) return t("elapsed.justNow");
+  if (ms < HOUR) return t("elapsed.minutes", { n: Math.floor(ms / MINUTE) });
+  if (ms < DAY) return t("elapsed.hours", { n: Math.floor(ms / HOUR) });
+  return t("elapsed.days", { n: Math.floor(ms / DAY) });
 }
 
 /** 放置の度合い。0: 1時間未満 / 1: 6時間未満 / 2: 1日未満 / 3: 1日以上 */

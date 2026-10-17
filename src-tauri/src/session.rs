@@ -156,11 +156,11 @@ impl Session {
                         overlay::commit(app);
                         let _ = app.emit("tasks:changed", ());
                     }
-                    Err(e) => overlay::error(app, &format!("保存に失敗しました: {e}")),
+                    Err(e) => overlay::error(app, "saveFailed", Some(e.to_string())),
                 }
             }
             Some(Err(CaptureError::NoPermission)) => {
-                overlay::error(app, "アクセシビリティの許可が必要です");
+                overlay::error(app, "noPermission", None);
             }
             other => {
                 if let Some(Err(CaptureError::Other(e))) = other {

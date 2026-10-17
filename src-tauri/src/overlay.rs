@@ -4,6 +4,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::Duration;
 
+use serde::Serialize;
+
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
@@ -81,8 +83,15 @@ pub fn cancel(app: &AppHandle) {
     hide_after(app, FADE);
 }
 
-pub fn error(app: &AppHandle, message: &str) {
-    let _ = app.emit_to(OVERLAY, "overlay:error", message);
+/// 画面に出す文言は画面側の辞書（i18n.js の error.*）で翻訳するので、ここでは種類だけを送る。
+#[derive(Clone, Serialize)]
+pub struct OverlayError {
+    pub code: &'static str,
+    pub detail: Option<String>,
+}
+
+pub fn error(app: &AppHandle, code: &'static str, detail: Option<String>) {
+    let _ = app.emit_to(OVERLAY, "overlay:error", OverlayError { code, detail });
     hide_after(app, ERROR_VISIBLE);
 }
 

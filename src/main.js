@@ -1,4 +1,4 @@
-import { PRIORITIES } from "./priority.js";
+import { t, translatePage } from "./i18n.js";
 import {
   ageLevel,
   clampSelection,
@@ -12,7 +12,6 @@ import {
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
-const COLUMN_LABELS = { ...Object.fromEntries(Object.entries(PRIORITIES).map(([k, v]) => [k, v.label])), done: "完了" };
 const PRIORITY_KEYS = { 1: "now", 2: "today", 3: "later" };
 const UNDO_LIMIT = 50;
 
@@ -23,21 +22,31 @@ const columnsEl = document.getElementById("columns");
 const toast = document.getElementById("toast");
 const toastText = document.getElementById("toast-text");
 
-document.getElementById("shortcut").textContent =
-  `文字を選んで ${isMac ? "⌘⇧Space" : "Ctrl+Shift+Space"} で登録（1回: 今すぐ / 2回: 今日中 / 3回: あとで）`;
-document.getElementById("keys").innerHTML = [
-  ["↑↓←→", "移動"],
-  ["1 2 3", "優先度を変更"],
-  ["Space", "完了 / 未完了"],
-  [`${mod}Z`, "元に戻す"],
-]
-  .map(([k, label]) => `<span><kbd>${k}</kbd> ${label}</span>`)
-  .join("");
+translatePage();
+document.getElementById("shortcut").textContent = t("board.howTo", {
+  shortcut: isMac ? "⌘⇧Space" : "Ctrl+Shift+Space",
+});
+document.getElementById("keys").replaceChildren(
+  ...[
+    ["↑↓←→", "keys.move"],
+    ["1 2 3", "keys.priority"],
+    ["Space", "keys.toggle"],
+    [`${mod}Z`, "keys.undo"],
+  ].map(([k, key]) => {
+    const span = el("span");
+    span.append(el("kbd", null, k), ` ${t(key)}`);
+    return span;
+  }),
+);
 
 let groups = groupTasks([]);
 let sel = { col: 0, row: 0 };
 const undoStack = [];
 let toastTimer;
+
+function columnLabel(name) {
+  return name === "done" ? t("column.done") : t(`priority.${name}`);
+}
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -50,16 +59,16 @@ function selectedTask() {
   return groups[COLUMNS[sel.col]][sel.row] ?? null;
 }
 
-function renderTask(t, col, row) {
+function renderTask(task, col, row) {
   const li = el("li", "task");
-  li.dataset.priority = t.priority;
-  li.classList.toggle("done", t.status === "done");
+  li.dataset.priority = task.priority;
+  li.classList.toggle("done", task.status === "done");
   li.classList.toggle("selected", col === sel.col && row === sel.row);
 
   const check = el("button", "check", "✓");
   check.type = "button";
   check.tabIndex = -1;
-  check.title = t.status === "done" ? "未完了に戻す" : "完了にする";
+  check.title = t(task.status === "done" ? "board.markOpen" : "board.markDone");
   check.addEventListener("click", (e) => {
     e.stopPropagation();
     sel = { col, row };
@@ -67,15 +76,15 @@ function renderTask(t, col, row) {
   });
 
   const body = el("div", "body");
-  body.append(el("div", "title", t.title));
-  if (t.memo) body.append(el("div", "memo", t.memo));
+  body.append(el("div", "title", task.title));
+  if (task.memo) body.append(el("div", "memo", task.memo));
   const meta = el("div", "meta");
-  if (t.sourceApp) meta.append(`${t.sourceApp} ・ `);
-  if (t.status === "done") {
-    meta.append(`完了 ${elapsed(t.completedAt)}`);
+  if (task.sourceApp) meta.append(`${task.sourceApp} · `);
+  if (task.status === "done") {
+    meta.append(t("board.completedAt", { elapsed: elapsed(task.completedAt) }));
   } else {
-    const age = el("span", "age", elapsed(t.createdAt));
-    age.dataset.level = String(ageLevel(t.createdAt));
+    const age = el("span", "age", elapsed(task.createdAt));
+    age.dataset.level = String(ageLevel(task.createdAt));
     meta.append(age);
   }
   body.append(meta);
@@ -95,11 +104,11 @@ function render() {
       const items = groups[name];
       const section = el("section");
       section.dataset.column = name;
-      const h2 = el("h2", null, COLUMN_LABELS[name]);
+      const h2 = el("h2", null, columnLabel(name));
       h2.append(el("span", "count", String(items.length)));
       const list = el("ul");
-      if (items.length === 0) list.append(el("li", "empty", "なし"));
-      items.forEach((t, row) => list.append(renderTask(t, col, row)));
+      if (items.length === 0) list.append(el("li", "empty", t("board.empty")));
+      items.forEach((task, row) => list.append(renderTask(task, col, row)));
       section.append(h2, list);
       return section;
     }),
@@ -133,28 +142,28 @@ async function change(task, patch, message) {
     render();
     showToast(message, true);
   } catch (e) {
-    showToast(`変更できませんでした: ${e}`, false);
+    showToast(t("toast.changeFailed", { error: e }), false);
   }
 }
 
 function toggleDone() {
-  const t = selectedTask();
-  if (!t) return;
-  const done = t.status === "done";
-  change(t, { status: done ? "open" : "done" }, done ? "未完了に戻しました" : "完了にしました");
+  const task = selectedTask();
+  if (!task) return;
+  const done = task.status === "done";
+  change(task, { status: done ? "open" : "done" }, t(done ? "toast.reopened" : "toast.done"));
 }
 
 function setPriority(priority) {
-  const t = selectedTask();
-  if (!t) return;
-  if (t.priority === priority && t.status === "open") return;
-  change(t, { priority, status: "open" }, `「${PRIORITIES[priority].label}」に移しました`);
+  const task = selectedTask();
+  if (!task) return;
+  if (task.priority === priority && task.status === "open") return;
+  change(task, { priority, status: "open" }, t("toast.moved", { priority: t(`priority.${priority}`) }));
 }
 
 async function undo() {
   const before = undoStack.pop();
   if (!before) {
-    showToast("元に戻せる操作はありません", false);
+    showToast(t("toast.nothingToUndo"), false);
     return;
   }
   try {
@@ -162,10 +171,10 @@ async function undo() {
     await reload();
     sel = locate(before.id, groups) ?? sel;
     render();
-    showToast("元に戻しました", false);
+    showToast(t("toast.undone"), false);
   } catch (e) {
     undoStack.push(before);
-    showToast(`元に戻せませんでした: ${e}`, false);
+    showToast(t("toast.undoFailed", { error: e }), false);
   }
 }
 

@@ -70,12 +70,12 @@
   </head>
   <body>
     <form id="form" data-priority="now">
-      <textarea id="text" placeholder="タスクを入力（Enterで登録・Escで閉じる）" rows="2"></textarea>
+      <textarea id="text" data-i18n-placeholder="input.placeholder" rows="2"></textarea>
       <div class="bar">
-        <button type="button" class="chip" data-priority="now">今すぐ</button>
-        <button type="button" class="chip" data-priority="today">今日中</button>
-        <button type="button" class="chip" data-priority="later">あとで</button>
-        <span class="hint" id="hint">Shift+Enterで改行</span>
+        <button type="button" class="chip" data-priority="now" data-i18n="priority.now"></button>
+        <button type="button" class="chip" data-priority="today" data-i18n="priority.today"></button>
+        <button type="button" class="chip" data-priority="later" data-i18n="priority.later"></button>
+        <span class="hint" id="hint" data-i18n="input.hint"></span>
       </div>
     </form>
     <script type="module" src="input.js"></script>

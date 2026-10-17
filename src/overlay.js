@@ -1,3 +1,4 @@
+import { t, translateError } from "./i18n.js";
 import { PRIORITIES } from "./priority.js";
 
 const { listen } = window.__TAURI__.event;
@@ -11,7 +12,7 @@ function render({ priority, preview: text }) {
   const p = PRIORITIES[priority];
   const changed = card.dataset.priority !== priority;
   card.dataset.priority = priority;
-  label.textContent = p.label;
+  label.textContent = t(`priority.${priority}`);
   steps.forEach((dot, i) => dot.classList.toggle("on", i < p.step));
   preview.textContent = text ?? "";
   if (changed) {
@@ -40,9 +41,11 @@ listen("overlay:cancel", () => {
   card.dataset.state = "cancel";
 });
 
+// Rust からはエラーの種類（code）だけを受け取り、文言はここで翻訳する。
 listen("overlay:error", (e) => {
+  const { code, detail } = e.payload;
   card.dataset.state = "error";
-  label.textContent = "登録できませんでした";
-  preview.textContent = e.payload;
+  label.textContent = t("overlay.failed");
+  preview.textContent = translateError(code, { detail });
   steps.forEach((dot) => dot.classList.remove("on"));
 });

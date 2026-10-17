@@ -58,7 +58,8 @@ fn save_manual(
     priority: Priority,
     source_app: Option<String>,
 ) -> Result<(), String> {
-    let task = Task::from_text(&text, priority, source_app).ok_or("内容が空です")?;
+    // エラーの文言は画面側で翻訳するので、種類を表す文字列を返す。
+    let task = Task::from_text(&text, priority, source_app).ok_or("empty")?;
     store.add(task).map_err(|e| e.to_string())?;
     let _ = app.emit("tasks:changed", ());
     hide_input(app);
@@ -73,6 +74,24 @@ fn hide_input(app: AppHandle) {
     // 窓を隠すだけでは tekipaki が手前に残り、次の登録で自分を発生元として拾ってしまう。
     #[cfg(target_os = "macos")]
     let _ = app.hide();
+}
+
+/// メニューバーのメニューは Rust 側で作るため、ここだけは画面側の辞書を使えない。
+/// 判定の決め方は i18n.js の detectLang と揃える。
+fn tray_labels() -> (&'static str, &'static str) {
+    let japanese = sys_locale::get_locales()
+        .map(|tag| tag.to_lowercase())
+        .find_map(|tag| match tag.split(['-', '_']).next() {
+            Some("ja") => Some(true),
+            Some("en") => Some(false),
+            _ => None,
+        })
+        .unwrap_or(false);
+    if japanese {
+        ("一覧を開く", "終了")
+    } else {
+        ("Open tekipaki", "Quit")
+    }
 }
 
 fn show_main(app: &AppHandle) {
@@ -116,8 +135,9 @@ pub fn run() {
 
             overlay::build_windows(app.handle())?;
 
-            let open = MenuItem::with_id(app, "open", "一覧を開く", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
+            let (open_label, quit_label) = tray_labels();
+            let open = MenuItem::with_id(app, "open", open_label, true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", quit_label, true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &quit])?;
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())

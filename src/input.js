@@ -1,3 +1,5 @@
+import { t, translateError, translatePage } from "./i18n.js";
+
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
@@ -19,7 +21,7 @@ async function save() {
   try {
     await invoke("save_manual", { text: text.value, priority, sourceApp });
   } catch (e) {
-    hint.textContent = String(e);
+    hint.textContent = translateError(e);
     hint.classList.add("error");
   }
 }
@@ -28,7 +30,7 @@ listen("input:open", (e) => {
   select(e.payload.priority);
   sourceApp = e.payload.source_app;
   text.value = "";
-  hint.textContent = "Shift+Enterで改行";
+  hint.textContent = t("input.hint");
   hint.classList.remove("error");
   text.focus();
 });
@@ -51,4 +53,5 @@ text.addEventListener("keydown", (e) => {
   }
 });
 
+translatePage();
 select("now");

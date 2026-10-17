@@ -10,6 +10,9 @@ import {
   locate,
   moveSelection,
 } from "./board.js";
+import { setLang } from "./i18n.js";
+
+setLang("ja");
 
 const task = (id, priority, createdAt, extra = {}) => ({
   id,
