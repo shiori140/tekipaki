@@ -2,7 +2,7 @@
 name = "tekipaki"
 version = "0.1.0"
 description = "突発タスクを、てきぱき登録・てきぱき片付けるためのツール"
-authors = ["SHIORI"]
+authors = ["SHIORI (fizzz)"]
 license = "MIT"
 edition = "2024"
 
