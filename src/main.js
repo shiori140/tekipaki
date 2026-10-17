@@ -1,4 +1,4 @@
-import { t, translatePage } from "./i18n.js";
+import { syncLang, t, translatePage } from "./i18n.js";
 import {
   ageLevel,
   clampSelection,
@@ -22,22 +22,25 @@ const columnsEl = document.getElementById("columns");
 const toast = document.getElementById("toast");
 const toastText = document.getElementById("toast-text");
 
-translatePage();
-document.getElementById("shortcut").textContent = t("board.howTo", {
-  shortcut: isMac ? "⌘⇧Space" : "Ctrl+Shift+Space",
-});
-document.getElementById("keys").replaceChildren(
-  ...[
-    ["↑↓←→", "keys.move"],
-    ["1 2 3", "keys.priority"],
-    ["Space", "keys.toggle"],
-    [`${mod}Z`, "keys.undo"],
-  ].map(([k, key]) => {
-    const span = el("span");
-    span.append(el("kbd", null, k), ` ${t(key)}`);
-    return span;
-  }),
-);
+/** タスク一覧以外の、言語を切り替えたときに描き直す部分。 */
+function renderChrome() {
+  translatePage();
+  document.getElementById("shortcut").textContent = t("board.howTo", {
+    shortcut: isMac ? "⌘⇧Space" : "Ctrl+Shift+Space",
+  });
+  document.getElementById("keys").replaceChildren(
+    ...[
+      ["↑↓←→", "keys.move"],
+      ["1 2 3", "keys.priority"],
+      ["Space", "keys.toggle"],
+      [`${mod}Z`, "keys.undo"],
+    ].map(([k, key]) => {
+      const span = el("span");
+      span.append(el("kbd", null, k), ` ${t(key)}`);
+      return span;
+    }),
+  );
+}
 
 let groups = groupTasks([]);
 let sel = { col: 0, row: 0 };
@@ -209,4 +212,9 @@ document.addEventListener("keydown", (e) => {
 listen("tasks:changed", reload);
 // 経過時間の表示を更新する。
 setInterval(render, 60_000);
+await syncLang(() => {
+  renderChrome();
+  render();
+});
+renderChrome();
 reload();

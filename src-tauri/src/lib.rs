@@ -1,15 +1,16 @@
 mod capture;
 mod overlay;
 mod session;
+mod settings;
 mod source_app;
 mod store;
+mod tray;
 
-use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_global_shortcut::{Shortcut, ShortcutState};
 
 use session::Session;
+use settings::{Lang, Settings};
 use store::{Priority, Status, Store, Task};
 
 /// 2キーの組み合わせは他のアプリと衝突しやすいため、3キーにしている。
@@ -66,6 +67,12 @@ fn save_manual(
     Ok(())
 }
 
+/// 画面側はこの言語で表示する。OS の言語ではなく、利用者が選んだ設定を優先する。
+#[tauri::command]
+fn get_language(settings: tauri::State<Settings>) -> Lang {
+    settings.language().resolve()
+}
+
 #[tauri::command]
 fn hide_input(app: AppHandle) {
     if let Some(w) = app.get_webview_window(overlay::INPUT) {
@@ -76,25 +83,7 @@ fn hide_input(app: AppHandle) {
     let _ = app.hide();
 }
 
-/// メニューバーのメニューは Rust 側で作るため、ここだけは画面側の辞書を使えない。
-/// 判定の決め方は i18n.js の detectLang と揃える。
-fn tray_labels() -> (&'static str, &'static str) {
-    let japanese = sys_locale::get_locales()
-        .map(|tag| tag.to_lowercase())
-        .find_map(|tag| match tag.split(['-', '_']).next() {
-            Some("ja") => Some(true),
-            Some("en") => Some(false),
-            _ => None,
-        })
-        .unwrap_or(false);
-    if japanese {
-        ("一覧を開く", "終了")
-    } else {
-        ("Open tekipaki", "Quit")
-    }
-}
-
-fn show_main(app: &AppHandle) {
+pub(crate) fn show_main(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
         let _ = w.set_focus();
@@ -130,25 +119,13 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            let store = Store::open(app.path().app_data_dir()?)?;
-            app.manage(store);
+            let data_dir = app.path().app_data_dir()?;
+            app.manage(Store::open(data_dir.clone())?);
+            app.manage(Settings::open(data_dir)?);
 
             overlay::build_windows(app.handle())?;
 
-            let (open_label, quit_label) = tray_labels();
-            let open = MenuItem::with_id(app, "open", open_label, true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", quit_label, true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open, &quit])?;
-            TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("tekipaki")
-                .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "open" => show_main(app),
-                    "quit" => app.exit(0),
-                    _ => {}
-                })
-                .build(app)?;
+            tray::create(app.handle())?;
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -165,6 +142,7 @@ pub fn run() {
             update_task,
             restore_task,
             save_manual,
+            get_language,
             hide_input
         ])
         .run(tauri::generate_context!())

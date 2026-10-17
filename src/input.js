@@ -1,4 +1,4 @@
-import { t, translateError, translatePage } from "./i18n.js";
+import { syncLang, t, translateError, translatePage } from "./i18n.js";
 
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
@@ -53,5 +53,9 @@ text.addEventListener("keydown", (e) => {
   }
 });
 
+await syncLang(() => {
+  translatePage();
+  hint.classList.remove("error");
+});
 translatePage();
 select("now");

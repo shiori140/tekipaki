@@ -1,4 +1,4 @@
-import { t, translateError } from "./i18n.js";
+import { syncLang, t, translateError } from "./i18n.js";
 import { PRIORITIES } from "./priority.js";
 
 const { listen } = window.__TAURI__.event;
@@ -49,3 +49,5 @@ listen("overlay:error", (e) => {
   preview.textContent = translateError(code, { detail });
   steps.forEach((dot) => dot.classList.remove("on"));
 });
+
+await syncLang();

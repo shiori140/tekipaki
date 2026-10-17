@@ -108,6 +108,20 @@ export function t(key, params = {}) {
   return template.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? `{${name}}`));
 }
 
+/**
+ * Rust 側の言語設定（メニューバーで選んだ言語）に合わせる。切り替えられたら onChange を呼ぶ。
+ * それまでの間は OS の言語設定から推測した言語で表示しておく。
+ */
+export async function syncLang(onChange) {
+  const tauri = globalThis.window?.__TAURI__;
+  if (!tauri) return;
+  setLang(await tauri.core.invoke("get_language"));
+  await tauri.event.listen("language:changed", (e) => {
+    setLang(e.payload);
+    onChange?.();
+  });
+}
+
 /** Rust から届くエラーの種類を翻訳する。辞書にない種類は、そのまま表示する。 */
 export function translateError(code, params = {}) {
   const key = `error.${code}`;
