@@ -1,0 +1,38 @@
+:root {
+  --now: #e5484d;
+  --today: #f5b800;
+  --later: #3e8ef7;
+  --on-now: #ffffff;
+  --on-today: #2b2100;
+  --on-later: #ffffff;
+
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --text: #1c1c1f;
+  --muted: #6b6b73;
+  --border: #e3e3e7;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI",
+    "Yu Gothic UI", "Meiryo", sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18181b;
+    --surface: #232327;
+    --text: #ededf0;
+    --muted: #9a9aa3;
+    --border: #34343a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>tekipaki</title>
+    <link rel="stylesheet" href="base.css" />
+    <style>
+      html,
+      body {
+        background: transparent;
+        overflow: hidden;
+      }
+
+      form {
+        position: absolute;
+        inset: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-top: 4px solid var(--color, var(--now));
+      }
+      form[data-priority="now"] { --color: var(--now); }
+      form[data-priority="today"] { --color: var(--today); }
+      form[data-priority="later"] { --color: var(--later); }
+
+      textarea {
+        flex: 1;
+        resize: none;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 15px;
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .bar .hint { margin-left: auto; }
+
+      .chip {
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font: inherit;
+        cursor: pointer;
+      }
+      .chip[aria-pressed="true"] {
+        background: var(--color);
+        border-color: var(--color);
+        color: var(--on-color);
+      }
+      .chip[data-priority="now"] { --color: var(--now); --on-color: var(--on-now); }
+      .chip[data-priority="today"] { --color: var(--today); --on-color: var(--on-today); }
+      .chip[data-priority="later"] { --color: var(--later); --on-color: var(--on-later); }
+
+      .error { color: var(--now); }
+    </style>
+  </head>
+  <body>
+    <form id="form" data-priority="now">
+      <textarea id="text" placeholder="タスクを入力（Enterで登録・Escで閉じる）" rows="2"></textarea>
+      <div class="bar">
+        <button type="button" class="chip" data-priority="now">今すぐ</button>
+        <button type="button" class="chip" data-priority="today">今日中</button>
+        <button type="button" class="chip" data-priority="later">あとで</button>
+        <span class="hint" id="hint">Shift+Enterで改行</span>
+      </div>
+    </form>
+    <script type="module" src="input.js"></script>
+  </body>
+</html>
